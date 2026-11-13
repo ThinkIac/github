@@ -1,0 +1,20 @@
+{
+  "name": "github",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "description": "ThinkIac tools for GitHub, authenticated Git, repositories, issues, and pull requests.",
+  "manifest": {
+    "name": "GitHub",
+    "iconPreset": { "pack": "lucide", "name": "Github" },
+    "keysTab": {
+      "id": "github-credentials",
+      "label": "GitHub",
+      "view": "Settings",
+      "renderer": "schema",
+      "surface": "github-credentials",
+      "order": 40
+    }
+  },
+  "dependencies": { "logos": "*" }
+}

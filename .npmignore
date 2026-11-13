@@ -1,0 +1,12 @@
+.private/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+credentials.json
+settings.json
