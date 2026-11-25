@@ -3,8 +3,8 @@ import { githubRequest, repositoryPath } from './lib/github-api.js'
 import { cloneRepository, createBranch as createLocalBranch, localBranches, pullRepository, pushRepository, publicSshKey, setGitIdentity } from './lib/git.js'
 
 const GITHUB_CREDENTIALS_SURFACE = Object.freeze({
-  version: 1, kind: 'github-credentials', eyebrow: 'Integration credentials', title: 'GitHub',
-  description: 'Configure the SSH key, API token, and identity used for commits.',
+  version: 1, kind: 'github-credentials', eyebrow: 'Credenciais de integração', title: 'GitHub',
+  description: 'Configure a chave SSH, o token da API e a identidade usada nos commits.',
   extra: { kind: 'github-credentials', actions: { save: 'github.credentials.save' } },
   actions: { 'github.credentials.save': { intent: 'write' } },
 })
@@ -22,7 +22,7 @@ export async function updateSettings(req) {
   const body = req?.body || {}
   const name = String(body.name || '').trim()
   const email = String(body.email || '').trim()
-  if (name.length > 200 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return { status: 400, error: 'Provide a valid name and email.' }
+  if (name.length > 200 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return { status: 400, error: 'Informe nome e e-mail válidos.' }
   const current = await readConfig()
   const config = await saveConfig({ name, email, token: body.clearToken ? '' : (body.token || current.token) })
   return { configured: Boolean(config.token), tokenConfigured: Boolean(config.token), name: config.name, email: config.email, publicKey: await publicSshKey() }
@@ -30,7 +30,7 @@ export async function updateSettings(req) {
 
 /** @register_router system/view @method GET */
 export async function systemView(req) {
-  if (req?.query?.tab && req.query.tab !== 'github-credentials') return { status: 404, mensagem: 'GitHub tab not found.' }
+  if (req?.query?.tab && req.query.tab !== 'github-credentials') return { status: 404, mensagem: 'Aba GitHub não encontrada.' }
   const config = await readConfig()
   return {
     status: 200,
@@ -41,22 +41,22 @@ export async function systemView(req) {
 
 /** @register_router system/action @method POST */
 export async function systemAction(req) {
-  if (req?.query?.tab && req.query.tab !== 'github-credentials') return { status: 404, mensagem: 'GitHub tab not found.' }
-  if (req?.body?.action !== 'github.credentials.save') return { status: 404, mensagem: 'Integration action not allowed.' }
+  if (req?.query?.tab && req.query.tab !== 'github-credentials') return { status: 404, mensagem: 'Aba GitHub não encontrada.' }
+  if (req?.body?.action !== 'github.credentials.save') return { status: 404, mensagem: 'Ação de integração não permitida.' }
   const result = await updateSettings({ body: req.body.values || {} })
-  if (result.status >= 400) return { ...result, mensagem: result.error || 'Unable to save settings.' }
-  return { status: 200, state: result, notice: 'GitHub settings saved.' }
+  if (result.status >= 400) return { ...result, mensagem: result.error || 'Não foi possível salvar as configurações.' }
+  return { status: 200, state: result, notice: 'Configurações do GitHub salvas.' }
 }
 
 /** @register_tool github_generate_ssh_key
- * @description Generates or returns the Ed25519 SSH public key to register in the GitHub user settings. The private key remains in the package private directory.
+ * @description Gera ou retorna a chave pública SSH Ed25519 para cadastrar nas configurações do usuário GitHub. A chave privada fica no diretório privado do pacote.
  */
 export async function generateSshKey() { return { publicKey: await publicSshKey(), format: 'OpenSSH Ed25519' } }
 
 /** @register_tool github_list_repositories
- * @description Lists repositories accessible to the configured GitHub account.
- * @param {number?} perPage - Items per page (maximum 100)
- * @param {number?} page - List page
+ * @description Lista repositórios acessíveis pela conta GitHub configurada.
+ * @param {number?} perPage - Quantidade por página (máximo 100)
+ * @param {number?} page - Página da lista
  */
 export async function listRepositories({ perPage = 30, page = 1 } = {}) {
   const result = await githubRequest(`/user/repos?per_page=${Math.min(100, Math.max(1, Number(perPage) || 30))}&page=${Math.max(1, Number(page) || 1)}&sort=updated`)
@@ -64,56 +64,38 @@ export async function listRepositories({ perPage = 30, page = 1 } = {}) {
 }
 
 /** @register_tool github_create_repository
- * @description Creates a repository in the authenticated GitHub account.
- * @param {string} name - New repository name
- * @param {string?} description - Description
- * @param {boolean?} private - Create as private (default: true)
- * @param {boolean?} autoInit - Create with an initial README
- * @param {string?} owner - Destination organization; omit to create under the authenticated account
+ * @description Cria um repositório na conta autenticada do GitHub.
+ * @param {string} name - Nome do novo repositório
+ * @param {string?} description - Descrição
+ * @param {boolean?} private - Criar como privado (padrão: true)
+ * @param {boolean?} autoInit - Criar com README inicial
  */
-export async function createRepository({ name, description = '', private: isPrivate = true, autoInit = false, owner } = {}) {
-  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(name || '')) throw new Error('Invalid repository name.')
-  const targetOwner = String(owner || '').trim()
-  if (targetOwner && !/^[A-Za-z0-9-]{1,39}$/.test(targetOwner)) throw new Error('Invalid destination organization.')
-  const path = targetOwner ? `/orgs/${encoded(targetOwner)}/repos` : '/user/repos'
-  const repo = await githubRequest(path, { method: 'POST', body: { name, description, private: Boolean(isPrivate), auto_init: Boolean(autoInit) } })
+export async function createRepository({ name, description = '', private: isPrivate = true, autoInit = false } = {}) {
+  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(name || '')) throw new Error('Nome de repositório inválido.')
+  const repo = await githubRequest('/user/repos', { method: 'POST', body: { name, description, private: Boolean(isPrivate), auto_init: Boolean(autoInit) } })
   return { id: repo.id, name: repo.name, fullName: repo.full_name, url: repo.html_url, cloneSshUrl: repo.ssh_url, defaultBranch: repo.default_branch }
 }
 
 /** @register_tool github_edit_repository
- * @description Changes a repository name, description, visibility, or basic settings.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string?} name - New name
- * @param {string?} description - New description
- * @param {boolean?} private - Private visibility
- * @param {boolean?} archived - Archive or unarchive
+ * @description Altera nome, descrição, visibilidade ou configurações básicas de um repositório.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string?} name - Novo nome
+ * @param {string?} description - Nova descrição
+ * @param {boolean?} private - Visibilidade privada
+ * @param {boolean?} archived - Arquivar ou desarquivar
  */
 export async function editRepository({ owner, repo, name, description, private: isPrivate, archived } = {}) {
   const body = Object.fromEntries(Object.entries({ name, description, private: isPrivate, archived }).filter(([, value]) => value !== undefined))
-  if (!Object.keys(body).length) throw new Error('Provide at least one property to update.')
+  if (!Object.keys(body).length) throw new Error('Informe ao menos uma propriedade para atualizar.')
   const result = await githubRequest(repositoryPath(owner, repo), { method: 'PATCH', body })
   return { id: result.id, name: result.name, fullName: result.full_name, description: result.description, private: result.private, archived: result.archived, url: result.html_url }
 }
 
-/** @register_tool github_delete_repository
- * @description Permanently deletes a GitHub repository. Requires explicit confirmation with the full repository name.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string} confirm - Must exactly match "owner/repo" to confirm permanent deletion
- */
-export async function deleteRepository({ owner, repo, confirm } = {}) {
-  const fullName = `${String(owner || '').trim()}/${String(repo || '').trim()}`
-  if (!/^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9_.-]{1,100}$/.test(fullName)) throw new Error('Invalid repository.')
-  if (confirm !== fullName) throw new Error(`Confirmation required: provide exactly "${fullName}".`)
-  await githubRequest(repositoryPath(owner, repo), { method: 'DELETE' })
-  return { deleted: true, fullName }
-}
-
 /** @register_tool github_list_branches
- * @description Lists remote branches for a GitHub repository.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
+ * @description Lista branches remotas de um repositório do GitHub.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
  */
 export async function listBranches({ owner, repo } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/branches?per_page=100`)
@@ -121,69 +103,69 @@ export async function listBranches({ owner, repo } = {}) {
 }
 
 /** @register_tool github_create_branch
- * @description Creates a GitHub branch from an existing SHA reference.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string} branch - New branch name
- * @param {string} from - Source SHA or branch name
+ * @description Cria branch no GitHub a partir de uma referência SHA existente.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string} branch - Nome da nova branch
+ * @param {string} from - SHA ou nome da branch de origem
  */
 export async function createRemoteBranch({ owner, repo, branch, from = 'main' } = {}) {
-  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,100}$/.test(branch || '') || branch.includes('..') || branch.endsWith('/')) throw new Error('Invalid branch name.')
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,100}$/.test(branch || '') || branch.includes('..') || branch.endsWith('/')) throw new Error('Nome de branch inválido.')
   const base = await githubRequest(`${repositoryPath(owner, repo)}/commits/${encoded(from)}`)
   const result = await githubRequest(`${repositoryPath(owner, repo)}/git/refs`, { method: 'POST', body: { ref: `refs/heads/${branch}`, sha: base.sha } })
   return { branch: result.ref.replace('refs/heads/', ''), sha: result.object.sha }
 }
 
 /** @register_tool github_clone_repository
- * @description Clones a repository into the package private directory, preferring the configured token and using SSH when no token is available, preparing push and pull operations.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string?} branch - Initial branch
+ * @description Clona um repositório no diretório privado do pacote, priorizando o token configurado e usando SSH quando não houver token, preparando Push e Pull.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string?} branch - Branch inicial
  */
 export async function cloneGithubRepository({ owner, repo, branch } = {}) { return { repo, ...(await cloneRepository({ owner, repo, defaultBranch: branch })) } }
 
 /** @register_tool github_list_local_branches
- * @description Lists local branches for a repository previously cloned by ThinkIac.
- * @param {string} repo - Local repository name
+ * @description Lista branches locais do repositório previamente clonado pelo ThinkIac.
+ * @param {string} repo - Nome local do repositório
  */
 export async function listLocalBranches({ repo } = {}) { return localBranches(repo) }
 
 /** @register_tool github_create_local_branch
- * @description Creates and selects a branch in the local clone.
- * @param {string} repo - Local repository name
- * @param {string} branch - Branch name
- * @param {string?} from - Source branch or reference (default: HEAD)
+ * @description Cria e seleciona uma branch no clone local.
+ * @param {string} repo - Nome local do repositório
+ * @param {string} branch - Nome da branch
+ * @param {string?} from - Branch ou referência de origem (padrão HEAD)
  */
 export async function createLocalBranchTool({ repo, branch, from = 'HEAD' } = {}) { return { repo, ...(await createLocalBranch(repo, branch, from)) } }
 
 /** @register_tool github_pull
- * @description Fast-forwards the local clone from the remote branch.
- * @param {string} repo - Local repository name
- * @param {string?} branch - Remote branch; omit to use the current branch
+ * @description Atualiza o clone local por fast-forward da branch remota.
+ * @param {string} repo - Nome local do repositório
+ * @param {string?} branch - Branch remota; omitida usa a branch atual
  */
 export async function pull({ repo, branch } = {}) { return { repo, ...(await pullRepository(repo, branch)) } }
 
 /** @register_tool github_push
- * @description Sends local changes to GitHub. Stages changes, creates a commit when needed, and publishes with the configured token or SSH when no token is available.
- * @param {string} repo - Local repository name
- * @param {string?} branch - Destination branch; omit to use the current branch
- * @param {string?} message - Commit message when changes exist
+ * @description Envia alterações locais ao GitHub. Adiciona mudanças, cria commit quando necessário e publica com o token configurado ou, na ausência dele, via SSH.
+ * @param {string} repo - Nome local do repositório
+ * @param {string?} branch - Branch de destino; omitida usa a branch atual
+ * @param {string?} message - Mensagem do commit se houver mudanças
  */
 export async function push({ repo, branch, message } = {}) { return { repo, ...(await pushRepository(repo, branch, message)) } }
 
 /** @register_tool github_set_git_identity
- * @description Sets the name and email used to author clone commits and stores them in GitHub settings.
- * @param {string} repo - Local repository name
- * @param {string} name - Commit author name
- * @param {string} email - Commit author email
+ * @description Define nome e e-mail que assinam commits do clone e armazena-os nas configurações do GitHub.
+ * @param {string} repo - Nome local do repositório
+ * @param {string} name - Nome do autor dos commits
+ * @param {string} email - E-mail do autor dos commits
  */
 export async function setIdentity({ repo, name, email } = {}) { return setGitIdentity(repo, name, email) }
 
 /** @register_tool github_list_issues
- * @description Lists open or closed issues; pull requests are not included.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string?} state - all, open, or closed
+ * @description Lista Issues abertas ou fechadas; Pull Requests não são incluídos.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string?} state - all, open ou closed
  */
 export async function listIssues({ owner, repo, state = 'open' } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/issues?state=${encodeURIComponent(['open', 'closed', 'all'].includes(state) ? state : 'open')}&per_page=100`)
@@ -191,11 +173,11 @@ export async function listIssues({ owner, repo, state = 'open' } = {}) {
 }
 
 /** @register_tool github_create_issue
- * @description Creates an issue in a repository.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string} title - Title
- * @param {string?} body - Description
+ * @description Cria Issue em um repositório.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string} title - Título
+ * @param {string?} body - Descrição
  */
 export async function createIssue({ owner, repo, title, body = '' } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/issues`, { method: 'POST', body: { title, body } })
@@ -203,11 +185,11 @@ export async function createIssue({ owner, repo, title, body = '' } = {}) {
 }
 
 /** @register_tool github_comment_issue
- * @description Adds a comment to an issue.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {number} issueNumber - Issue number
- * @param {string} body - Comment
+ * @description Adiciona comentário a uma Issue.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {number} issueNumber - Número da Issue
+ * @param {string} body - Comentário
  */
 export async function commentIssue({ owner, repo, issueNumber, body } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/issues/${Number(issueNumber)}/comments`, { method: 'POST', body: { body } })
@@ -215,10 +197,10 @@ export async function commentIssue({ owner, repo, issueNumber, body } = {}) {
 }
 
 /** @register_tool github_list_pull_requests
- * @description Lists repository pull requests.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string?} state - all, open, or closed
+ * @description Lista Pull Requests do repositório.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string?} state - all, open ou closed
  */
 export async function listPullRequests({ owner, repo, state = 'open' } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/pulls?state=${encodeURIComponent(['open', 'closed', 'all'].includes(state) ? state : 'open')}&per_page=100`)
@@ -226,13 +208,13 @@ export async function listPullRequests({ owner, repo, state = 'open' } = {}) {
 }
 
 /** @register_tool github_create_pull_request
- * @description Creates a pull request from the head branch to the base branch.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {string} title - Title
- * @param {string} head - Source branch
- * @param {string} base - Destination branch
- * @param {string?} body - Description
+ * @description Cria Pull Request a partir da branch head para a branch base.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {string} title - Título
+ * @param {string} head - Branch de origem
+ * @param {string} base - Branch de destino
+ * @param {string?} body - Descrição
  */
 export async function createPullRequest({ owner, repo, title, head, base, body = '' } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/pulls`, { method: 'POST', body: { title, head, base, body } })
@@ -240,11 +222,11 @@ export async function createPullRequest({ owner, repo, title, head, base, body =
 }
 
 /** @register_tool github_comment_pull_request
- * @description Comments on a pull request through the GitHub issue comments API.
- * @param {string} owner - Owner
- * @param {string} repo - Repository
- * @param {number} pullNumber - Pull request number
- * @param {string} body - Comment
+ * @description Comenta em um Pull Request por meio da API de comentários de Issue do GitHub.
+ * @param {string} owner - Proprietário
+ * @param {string} repo - Repositório
+ * @param {number} pullNumber - Número do Pull Request
+ * @param {string} body - Comentário
  */
 export async function commentPullRequest({ owner, repo, pullNumber, body } = {}) {
   const result = await githubRequest(`${repositoryPath(owner, repo)}/issues/${Number(pullNumber)}/comments`, { method: 'POST', body: { body } })
