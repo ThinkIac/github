@@ -18,9 +18,9 @@
     try {
       const response = await fetch('/github/settings', { cache: 'no-store' })
       const data = await response.json()
-      if (!response.ok || data.status >= 400) throw new Error(data.error || 'Unable to load settings.')
+      if (!response.ok || data.status >= 400) throw new Error(data.error || 'Não foi possível carregar as configurações.')
       state = data
-    } catch (cause) { error = cause.message || 'Unable to load settings.' }
+    } catch (cause) { error = cause.message || 'Não foi possível carregar as configurações.' }
     finally { loading = false }
   }
 
@@ -32,16 +32,16 @@
         body: JSON.stringify({ name: state.name, email: state.email, token: token || undefined, clearToken }),
       })
       const data = await response.json()
-      if (!response.ok || data.status >= 400) throw new Error(data.error || 'Unable to save settings.')
-      state = data; token = ''; clearToken = false; notice = 'Settings saved.'
-    } catch (cause) { error = cause.message || 'Unable to save settings.' }
+      if (!response.ok || data.status >= 400) throw new Error(data.error || 'Não foi possível salvar.')
+      state = data; token = ''; clearToken = false; notice = 'Configurações salvas.'
+    } catch (cause) { error = cause.message || 'Não foi possível salvar.' }
     finally { saving = false }
   }
 
   async function copyKey() {
     error = ''; notice = ''
-    try { await navigator.clipboard.writeText(state.publicKey); notice = 'SSH public key copied.' }
-    catch (_) { error = 'The browser did not allow copying. Select and copy the key manually.' }
+    try { await navigator.clipboard.writeText(state.publicKey); notice = 'Chave pública SSH copiada.' }
+    catch (_) { error = 'O navegador não permitiu copiar. Selecione e copie a chave manualmente.' }
   }
 
   onMount(() => {
@@ -51,31 +51,31 @@
 </script>
 
 <main class="settings" data-theme={theme} aria-busy={loading || saving}>
-  <header><p class="eyebrow">Integration credentials</p><h1>GitHub</h1><p class="intro">Configure an SSH key for Git operations and a token for repositories, issues, and pull requests.</p></header>
-  {#if loading}<p class="status" role="status">Loading…</p>{/if}
+  <header><p class="eyebrow">Credenciais de integração</p><h1>GitHub</h1><p class="intro">Configure a chave SSH para operações Git e um token para repositórios, Issues e Pull Requests.</p></header>
+  {#if loading}<p class="status" role="status">Carregando…</p>{/if}
   {#if error}<p class="notice error" role="alert">{error}</p>{/if}
   {#if notice}<p class="notice" role="status">{notice}</p>{/if}
   {#if !loading}
     <section aria-labelledby="ssh-heading">
-      <h2 id="ssh-heading">SSH key</h2>
-      <p>Add this public key in GitHub under Settings → SSH and GPG keys. The private key remains in the package's private directory.</p>
-      <label for="public-key">SSH public key</label>
-      <textarea id="public-key" readonly rows="3" bind:value={state.publicKey} aria-label="Generated SSH public key"></textarea>
-      <button type="button" on:click={copyKey}>Copy public key</button>
+      <h2 id="ssh-heading">Chave SSH</h2>
+      <p>Cadastre esta chave pública no GitHub em Settings → SSH and GPG keys. A chave privada fica armazenada no diretório privado do pacote.</p>
+      <label for="public-key">Chave pública SSH</label>
+      <textarea id="public-key" readonly rows="3" bind:value={state.publicKey} aria-label="Chave pública SSH gerada"></textarea>
+      <button type="button" on:click={copyKey}>Copiar chave pública</button>
     </section>
     <section aria-labelledby="token-heading">
-      <h2 id="token-heading">GitHub token</h2>
-      <p>Use a Personal Access Token with the permissions required for the intended repositories, branches, issues, and pull requests.</p>
-      <label for="github-token">Access token</label>
-      <input id="github-token" type="password" autocomplete="new-password" bind:value={token} placeholder={state.configured ? 'Token configured. Enter a new token to replace it.' : 'Paste the GitHub token'} />
-      {#if state.configured}<label class="check"><input type="checkbox" bind:checked={clearToken} /> Remove saved token</label>{/if}
+      <h2 id="token-heading">Token do GitHub</h2>
+      <p>Use um Personal Access Token com permissões necessárias para os repositórios, branches, Issues e Pull Requests desejados.</p>
+      <label for="github-token">Token de acesso</label>
+      <input id="github-token" type="password" autocomplete="new-password" bind:value={token} placeholder={state.configured ? 'Token configurado. Informe um novo para substituir.' : 'Cole o token do GitHub'} />
+      {#if state.configured}<label class="check"><input type="checkbox" bind:checked={clearToken} /> Remover o token salvo</label>{/if}
     </section>
     <section aria-labelledby="identity-heading">
-      <h2 id="identity-heading">Commit identity</h2>
-      <label for="git-name">Name</label><input id="git-name" autocomplete="name" bind:value={state.name} />
-      <label for="git-email">Email</label><input id="git-email" type="email" autocomplete="email" bind:value={state.email} />
+      <h2 id="identity-heading">Identidade dos commits</h2>
+      <label for="git-name">Nome</label><input id="git-name" autocomplete="name" bind:value={state.name} />
+      <label for="git-email">E-mail</label><input id="git-email" type="email" autocomplete="email" bind:value={state.email} />
     </section>
-    <footer><button class="primary" type="button" disabled={saving} on:click={save}>{saving ? 'Saving…' : 'Save settings'}</button></footer>
+    <footer><button class="primary" type="button" disabled={saving} on:click={save}>{saving ? 'Salvando…' : 'Salvar configurações'}</button></footer>
   {/if}
 </main>
 

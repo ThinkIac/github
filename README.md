@@ -1,51 +1,39 @@
-# GitHub
+# github
 
-GitHub repository automation for ThinkIac. This Lógos package provides managed authentication, repository and branch operations, authenticated Git workflows, issues, and pull requests through runtime tools.
+Tools do ThinkIac para GitHub, Git autenticado, repositórios, Issues e Pull Requests.
 
-## Responsible installation
+Repositório: https://github.com/ThinkIac/github.
 
-Before adding this package to a workspace, ask your AI assistant to review the code and the permissions required by its GitHub token and SSH key. Install it only in a workspace you trust.
+## Uso no ThinkIac
 
-## How it works
+Este pacote foi extraído de `packages/github`. Preserve a identidade `github` do manifest ao instalá-lo em um workspace Lógos. Views, rotas, ferramentas e hooks são descobertos pelo runtime e dependem dos provedores correspondentes. Esta extração publica o código atual; não converte JavaScript para LógosType nem implementa instalação por perfil.
 
-The **Settings → GitHub** screen generates an SSH public key, stores a Personal Access Token, and configures the author name and email used for commits. API calls and Git operations prefer the configured token; SSH is the fallback when no token is available.
+Entrada declarada: `index.js`.
 
-Secrets, managed clones, and generated authentication helpers stay under `.private/`. The package writes its settings file with mode `0600` and never returns private credentials through its tools.
+## Dependências e validação
 
-## Key features
+Dependências declaradas: `logos`.
 
-- Create, edit, inspect, and explicitly delete repositories.
-- List and create remote or local branches.
-- Clone, fast-forward pull, commit, and push through managed repositories.
-- List, create, and comment on issues and pull requests.
-- Configure commit identity without exposing credentials to shell commands or chat.
-- Prefer HTTPS token authentication, with managed SSH as a fallback.
+O pacote não declara scripts npm de build/teste. Os testes existentes acompanham o fonte; a composição completa requer o host ThinkIac.
 
-## Runtime tools
+## Segurança e dados locais
 
-| Area | Tools |
-| --- | --- |
-| Credentials | `github_generate_ssh_key` |
-| Repositories | `github_list_repositories`, `github_create_repository`, `github_edit_repository`, `github_delete_repository` |
-| Branches | `github_list_branches`, `github_create_branch`, `github_list_local_branches`, `github_create_local_branch` |
-| Git | `github_clone_repository`, `github_pull`, `github_push`, `github_set_git_identity` |
-| Issues | `github_list_issues`, `github_create_issue`, `github_comment_issue` |
-| Pull requests | `github_list_pull_requests`, `github_create_pull_request`, `github_comment_pull_request` |
+Credenciais devem ser configuradas no ambiente de destino. Não acompanham esta extração bancos, sessões, uploads, perfis pessoais, arquivos `.env`, caches ou backups. As exclusões foram registradas em relatório externo à publicação. Configure segredos pelo host, sem incluí-los em commits.
 
-Managed `pull` and `push` operations work only with clones created by `github_clone_repository` under `.private/repos/`. Pull is fast-forward only and stops when a manual merge would be required. Push stages tracked and untracked files, creates a commit when needed, and publishes the selected or current branch.
+## Documentação anterior
 
-## Security
+# GitHub Tools
 
-- Keep `.private/`, `.env*`, keys, tokens, local clones, and generated credentials out of version control.
-- Grant the token only the repository and organization permissions required for the intended operations.
-- Repository deletion requires the exact `owner/repository` value as explicit confirmation.
-- The host must provide `git` and `ssh` for managed Git operations.
+O pacote oferece Tools para repositórios, branches, Git por SSH, Issues e Pull Requests. A tela GitHub em **Settings → Chaves de integrações** mostra a chave pública SSH, recebe o Personal Access Token e configura nome/e-mail dos commits.
 
-## Development
+Cadastre a chave pública exibida no GitHub em **Settings → SSH and GPG keys**. O token é necessário para operações da API; a chave SSH é usada para clonar, puxar e enviar commits. O token e a chave privada são gravados em `packages/github/.private/settings.json` com permissão `0600`; clones e chave SSH do host ficam no mesmo diretório privado.
 
-```bash
-node --check packages/github/index.js
-node --check packages/github/lib/config.js
-node --check packages/github/lib/git.js
-node --check packages/github/lib/github-api.js
-```
+Push e Pull trabalham apenas em clones criados pela Tool `github_clone_repository`, dentro de `.private/repos/`. Push adiciona alterações rastreadas e não rastreadas, cria commit se necessário e envia a branch indicada ou a atual. Pull usa fast-forward e falha se houver divergência que exija merge manual. O host precisa ter `git` e `ssh` instalados.
+
+## Registros encontrados no código
+
+- `router`: `settings`, `system/action`, `system/view`.
+- `tool`: `github_clone_repository`, `github_comment_issue`, `github_comment_pull_request`, `github_create_branch`, `github_create_issue`, `github_create_local_branch`, `github_create_pull_request`, `github_create_repository`, `github_edit_repository`, `github_generate_ssh_key`, `github_list_branches`, `github_list_issues`, `github_list_local_branches`, `github_list_pull_requests`, `github_list_repositories`, `github_pull`, `github_push`, `github_set_git_identity`.
+
+A lista é um inventário estático e pode incluir registros em testes; não garante disponibilidade sem os provedores do host.
+

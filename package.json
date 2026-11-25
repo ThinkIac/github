@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-  "description": "ThinkIac tools for GitHub, authenticated Git, repositories, issues, and pull requests.",
+  "description": "Tools do ThinkIac para GitHub, Git autenticado, repositórios, Issues e Pull Requests.",
   "manifest": {
     "name": "GitHub",
-    "iconPreset": { "pack": "lucide", "name": "Github" },
+    "iconPreset": {
+      "pack": "lucide",
+      "name": "Github"
+    },
     "keysTab": {
       "id": "github-credentials",
       "label": "GitHub",
@@ -16,5 +19,11 @@
       "order": 40
     }
   },
-  "dependencies": { "logos": "*" }
+  "dependencies": {
+    "logos": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ThinkIac/github.git"
+  }
 }
